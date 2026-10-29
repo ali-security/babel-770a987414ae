@@ -1,21 +1,72 @@
 name: Report Coverage
 
-on: [push, pull_request]
+on:
+  workflow_dispatch:
+    inputs:
+      test-filter:
+        description: "Optional jest path/name selector; empty runs the full suite"
+        required: false
+        default: ""
+
+env:
+  BROWSERSLIST_IGNORE_OLD_DATA: "true"
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 50
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Use Node.js latest
-        uses: actions/setup-node@v2-beta
+        uses: actions/checkout@v4
+      - name: Use Node.js 14
+        uses: actions/setup-node@v4
         with:
-          node-version: "*"
+          node-version: "14"
+      - name: Pin npm registry to release date
+        run: |
+          npm config set registry https://:2020-05-30T19%3A25%3A10.179Z@time-machines-npm.sealsecurity.io/
+          npm config set always-auth true
+          yarn config set registry https://:2020-05-30T19%3A25%3A10.179Z@time-machines-npm.sealsecurity.io/
       - name: Generate coverage report
         run: |
-          make -j test-ci-coverage
-      - name: Upload coverage report
-        uses: codecov/codecov-action@v1
+          if [ -n "${{ inputs.test-filter }}" ]; then
+            BABEL_COVERAGE=true BABEL_ENV=test make bootstrap
+            BABEL_ENV=test yarn --silent jest --ci ${{ inputs.test-filter }}
+          else
+            make -j test-ci-coverage
+          fi
+
+  pack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Use Node.js 12.17.0
+        uses: actions/setup-node@v4
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          node-version: "12.17.0"
+      - name: Install yarn 1
+        run: npm i -g yarn@1.22.4
+      - name: Pin npm registry to release date
+        run: |
+          npm config set registry https://:2020-05-30T19%3A25%3A10.179Z@time-machines-npm.sealsecurity.io/
+          npm config set always-auth true
+          yarn config set registry https://:2020-05-30T19%3A25%3A10.179Z@time-machines-npm.sealsecurity.io/
+      - name: Bootstrap
+        run: make bootstrap-only
+      - name: Prepublish build
+        run: make prepublish-build
+      - name: Pack @babel/runtime-corejs2
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/seal-artifacts"
+          cd packages/babel-runtime-corejs2
+          npm pack
+          mv babel-runtime-corejs2-*.tgz "$GITHUB_WORKSPACE/seal-artifacts/runtime-corejs2-7.10.2.tgz"
+          tar -tzf "$GITHUB_WORKSPACE/seal-artifacts/runtime-corejs2-7.10.2.tgz" | wc -l
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-corejs2
+          path: seal-artifacts/runtime-corejs2-7.10.2.tgz
+          if-no-files-found: error

@@ -1,13 +1,13 @@
 name: Issue Triage
 
 on:
-  issues:
-    types: [opened, labeled]
+  workflow_dispatch: {}
 
 jobs:
   welcome:
     name: Welcome comment
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Check if Babel member
         id: is_babel_member
@@ -40,6 +40,7 @@ jobs:
   needs_info:
     name: Needs Info
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Create Needs Info Comment
         uses: babel/actions/create-comment@v2

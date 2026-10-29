@@ -1,13 +1,13 @@
 name: Release
 
 on:
-  push:
-    tags: ["v*"]
+  workflow_dispatch: {}
 
 jobs:
   github_release:
     name: Trigger GitHub release
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout the new tag
         uses: actions/checkout@v1.0.0

@@ -42,6 +42,7 @@ module.exports = {
     "_browser\\.js",
   ],
   testEnvironment: "node",
+  reporters: ["default", "<rootDir>/scripts/seal-skipped-tests-reporter.js"],
   setupFilesAfterEnv: ["<rootDir>/test/testSetupFile.js"],
   transformIgnorePatterns: [
     "/node_modules/",
